@@ -1,4 +1,4 @@
 include LICENSE.txt
-include README.md
+include README.rst
 recursive-include djqgrid/static *
 recursive-include docs *

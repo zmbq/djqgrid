@@ -52,14 +52,14 @@ One thing to note is ``align='right'`` - this property is passed directly to jqG
 Add the grid to your view and template
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-  The view: ::
+The view: ::
 
     define myview(request):
         grid = MyGrid()
         return render(request, 'my_template.html', { grid: grid })
     
 
-  The template: ::
+The template: ::
 
     {% load djqgrid %}
    

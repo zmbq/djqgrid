@@ -36,19 +36,19 @@ class Column(object):
         Column._creation_count += 1
         self._model_path = model_path
 
-    def get_model_attr(self, attr, model):
+    def __get_model_attr(self, attr, model):
         """
         Returns model.attr, taking into account nested attributes.
         """
         return reduce(getattr, attr.split('.'), model)
 
-    def get_model_value(self, model):
+    def _get_model_value(self, model):
         """
         Returns the column's value in the model
 
         The default implementation is to use ``get_model_attr``
         """
-        return self.get_model_attr(self._model_path, model)
+        return self.__get_model_attr(self._model_path, model)
 
     def render_text(self, model):
         """
@@ -56,7 +56,7 @@ class Column(object):
 
         The default implementation is to convert ``get_model_value`` to a string.
         """
-        return str(self.get_model_value(model))
+        return str(self._get_model_value(model))
 
     def render_html(self, model):
         """
@@ -99,7 +99,7 @@ class ClientOnlyColumn(Column):
 
     Use a ``ClientOnlyColumn`` when you fill the data in your JavaScript code. The server does nothing with this column.
     """
-    def get_model_value(self, model):
+    def _get_model_value(self, model):
         return ''
 
 class TemplateColumn(Column):
@@ -141,7 +141,7 @@ class TemplateColumn(Column):
     def set_template(self, template):
         self._template = Template(template.strip())
 
-    def fill_context(self, context, model):
+    def _fill_context(self, context, model):
         """
         Fills the template generation context with data from the model.
 
@@ -161,7 +161,7 @@ class TemplateColumn(Column):
         if not self._template:
             raise ValueError("Template has not been set in %s" % self)
         context = Context({'model': model})
-        self.fill_context(context, model)
+        self._fill_context(context, model)
         html = self._template.render(context = context)
 
         # jqGrid has issues with multiline cell values, so we make sure the cell value fits in a single line.
@@ -193,10 +193,10 @@ class LinkColumn(TemplateColumn):
         self._url_builder = url_builder
         # TODO: Allow url_builder to be a model_path or a function.
 
-    def fill_context(self, context, model):
+    def _fill_context(self, context, model):
         url = self._url_builder(model)
         context['url'] = url
-        context['name'] = self.get_model_attr(self._model_path, model)
+        context['name'] = self.__get_model_attr(self._model_path, model)
 
 class CheckboxColumn(Column):
     """

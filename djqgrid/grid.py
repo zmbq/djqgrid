@@ -11,7 +11,7 @@ from grid_registrar import register_grid
 __author__ = 'zmbq'
 
 # The meta class implementation is taken from the Django Form class, only with name changes
-def get_declared_columns(bases, attrs, with_base_columns=True):
+def _get_declared_columns(bases, attrs, with_base_columns=True):
     """
     Create a list of grid column instances from the passed in 'attrs', plus any
     similar columns on the base classes (in 'bases'). This is used by Grid metaclass.
@@ -44,7 +44,7 @@ class DeclarativeColumnsMetaclass(type):
     'base_columns', taking into account parent class 'base_columns' as well.
     """
     def __new__(cls, name, bases, attrs):
-        attrs['base_columns'] = get_declared_columns(bases, attrs)
+        attrs['base_columns'] = _get_declared_columns(bases, attrs)
         new_class = super(DeclarativeColumnsMetaclass,
                      cls).__new__(cls, name, bases, attrs)
         return new_class
@@ -129,7 +129,7 @@ class BaseGrid(object):
 
         return options
 
-    def model_to_dict(self, model):
+    def _model_to_dict(self, model):
         """
         Takes a model and converts it to a Python dictionary that will be sent to the jqGrid.
 
@@ -142,7 +142,7 @@ class BaseGrid(object):
         from the html dictionary.
 
         Sometimes more information is required by the JavaScript code (for example, to choose row CSS styles). It
-        is possible to add additional information. The method ``get_additional_data`` returns this additional information,
+        is possible to add additional information. The method ``_get_additional_data`` returns this additional information,
         which is put in result JSON as well.
 
                 So, for example, a Grid with two columns will have a JSON looking likes this::
@@ -164,12 +164,12 @@ class BaseGrid(object):
             html[title] = column.render_html(model)
         result['html'] = html
 
-        additional = self.get_additional_data(model)
+        additional = self._get_additional_data(model)
         if additional:
             result['additional'] = additional
         return result
 
-    def get_additional_data(self, model):
+    def _get_additional_data(self, model):
         """
         Retrieves additional data to be sent back to the client.
 
@@ -181,11 +181,11 @@ class BaseGrid(object):
 
         return None
 
-    def apply_sort(self, queryset, querydict):
+    def _apply_sort(self, queryset, querydict):
         """
         Applys sorting on the queryset.
 
-        jqGrid supports sorting, by passing ``sidx`` and ``sord`` in the request's query string. ``apply_sort``
+        jqGrid supports sorting, by passing ``sidx`` and ``sord`` in the request's query string. ``_apply_sort``
         applies this sorting on a queryset.
 
         Args:
@@ -208,7 +208,7 @@ class BaseGrid(object):
                 return queryset.order_by(order)
         raise ValueError("Can't find index field '%s'" % sidx)
 
-    def apply_query(self, queryset, querydict):
+    def _apply_query(self, queryset, querydict):
         """
         This function lets a Grid instance change the default query, if it's ever necessary
 
@@ -222,7 +222,7 @@ class BaseGrid(object):
         """
         return queryset
 
-    def get_query_results(self, querydict):
+    def _get_query_results(self, querydict):
         """
         Returns a queryset to populate the grid
 
@@ -232,8 +232,8 @@ class BaseGrid(object):
             The queryset that will be used to populate the grid. Paging will be applied by the caller.
         """
         queryset = self.model.objects
-        queryset = self.apply_query(queryset, querydict)
-        queryset = self.apply_sort(queryset, querydict)
+        queryset = self._apply_query(queryset, querydict)
+        queryset = self._apply_sort(queryset, querydict)
 
         return queryset
 
@@ -246,21 +246,21 @@ class BaseGrid(object):
         Returns:
             JSON string with the grid's contents
 
-        *DO NOT* override this method unless absolutely necessary. ``apply_query`` and ``get_additional_data`` should
+        *DO NOT* override this method unless absolutely necessary. ``_apply_query`` and ``_get_additional_data`` should
         be overridden instead.
         """
-        queryset = self.get_query_results(querydict)
+        queryset = self._get_query_results(querydict)
 
         page = int(querydict.get('page', '1'))
         rows = int(querydict.get('rows', self._options.get('rownum', 20)))
-        queryset = self.apply_sort(queryset, querydict)
+        queryset = self._apply_sort(queryset, querydict)
 
         total_pages = (len(queryset) + rows - 1) / rows
         paginator = Paginator(queryset, rows)
         response = {'page': page,
                     'total': total_pages,
                     'records': len(queryset),
-                    'rows': [self.model_to_dict(m) for m in paginator.page(page)]}
+                    'rows': [self._model_to_dict(m) for m in paginator.page(page)]}
         return response
     
 

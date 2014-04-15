@@ -36,7 +36,7 @@ class Column(object):
         Column._creation_count += 1
         self._model_path = model_path
 
-    def __get_model_attr(self, attr, model):
+    def _get_model_attr(self, attr, model):
         """
         Returns model.attr, taking into account nested attributes.
         """
@@ -48,7 +48,7 @@ class Column(object):
 
         The default implementation is to use ``get_model_attr``
         """
-        return self.__get_model_attr(self._model_path, model)
+        return self._get_model_attr(self._model_path, model)
 
     def render_text(self, model):
         """
@@ -87,11 +87,10 @@ class Column(object):
 class TextColumn(Column):
     """
     A column that contains simple text strings.
+
+    This is basically just a Column. We create a new class because it seems more tidy.
     """
-    def __init__(self, title, model_path, **kwargs):
-        super(TextColumn, self).__init__(title, model_path, **kwargs)
-        self._model_path = model_path
-        del self._colModel['formatter'] # Use the default formatter
+    pass
 
 class ClientOnlyColumn(Column):
     """
@@ -99,6 +98,9 @@ class ClientOnlyColumn(Column):
 
     Use a ``ClientOnlyColumn`` when you fill the data in your JavaScript code. The server does nothing with this column.
     """
+    def __init__(self, title, **kwargs):
+        super(ClientOnlyColumn, self).__init__(title, '', **kwargs)
+
     def _get_model_value(self, model):
         return ''
 
@@ -196,7 +198,7 @@ class LinkColumn(TemplateColumn):
     def _fill_context(self, context, model):
         url = self._url_builder(model)
         context['url'] = url
-        context['name'] = self.__get_model_attr(self._model_path, model)
+        context['name'] = self._get_model_attr(self._model_path, model)
 
 class CheckboxColumn(Column):
     """

@@ -9,7 +9,7 @@ os.chdir(os.path.normpath(os.path.join(os.path.abspath(__file__), os.pardir)))
 
 setup(
     name='djqgrid',
-    version='0.1',
+    version='0.1.2',
     packages=['djqgrid', 'djqgrid.templatetags'],
     include_package_data=True,
     license='MIT license',

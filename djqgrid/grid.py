@@ -13,7 +13,7 @@ __author__ = 'zmbq'
 # The meta class implementation is taken from the Django Form class, only with name changes
 def get_declared_columns(bases, attrs, with_base_columns=True):
     """
-    Create a list of form column instances from the passed in 'attrs', plus any
+    Create a list of grid column instances from the passed in 'attrs', plus any
     similar columns on the base classes (in 'bases'). This is used by Grid metaclass.
 
     If 'with_base_columns' is True, all columns from the bases are used.
@@ -41,7 +41,7 @@ def get_declared_columns(bases, attrs, with_base_columns=True):
 class DeclarativeColumnsMetaclass(type):
     """
     Metaclass that converts Column attributes to a dictionary called
-    'base_fields', taking into account parent class 'base_fields' as well.
+    'base_columns', taking into account parent class 'base_columns' as well.
     """
     def __new__(cls, name, bases, attrs):
         attrs['base_columns'] = get_declared_columns(bases, attrs)
@@ -50,6 +50,14 @@ class DeclarativeColumnsMetaclass(type):
         return new_class
 
 class BaseGrid(object):
+    """
+    The base Grid object.
+
+    Use this to create a Grid.
+
+    Attributes:
+        model: The model's class this grid will show. Each grid row will show information of one model instance.
+    """
     _default_options = dict(datatype = 'json',
                             mtype = 'get',
                             viewrecords = True,
@@ -61,6 +69,22 @@ class BaseGrid(object):
                             rowNum = 20)
 
     def __init__(self, **kwargs):
+        """
+        Creates a Grid
+
+        Args:
+            **kwargs: All the arguments will go to the grid's ``option`` array.
+
+        The grid's ``option`` array will be used to instantiate the jqGrid on the browser side:
+        ``$("#grid").jqGrid(options)``
+
+        If you want to pass handlers for events, such as ``loadComplete``, wrap then with ``function`` so that
+        the options are rendered correctly in JavaScript. For example:
+
+        ``grid = MyGrid(loadComplete=function('loadCompleteHandler'))``
+
+        For more information, see the ``json_helpers`` module.
+        """
         self._columns = copy.deepcopy(self.base_columns)
         self._options = BaseGrid._default_options.copy()
         self._options.update(kwargs)
@@ -68,6 +92,12 @@ class BaseGrid(object):
 
     @classmethod
     def get_grid_id(cls):
+        """
+        Returns the grid's class ID.
+
+        This is done by computing a CRC32 of the class's name. Using CRC32 is not a security risk - IDs are passed
+        in the HTTP anyway, so they are no secret and being able to generate them is not going to help an attacker.
+        """
         return '%X' % abs(crc32(cls.__name__))
 
     @property
@@ -75,6 +105,20 @@ class BaseGrid(object):
         return self._columns
 
     def get_options(self, override = None):
+        """
+        Returns the grid's options - this options will be passed to the JavaScript ``jqGrid`` function
+
+        Args:
+            override: A dictionary that overrides the options provided when the grid was initialized.
+
+        Returns:
+            A dictionary with the grid's options.
+
+        Some fields cannot be overridden:
+        - ``colNames`` are created from the grid's ``Column`` fields
+        - ``colModels`` are also created from the grid's ``Column`` fields.
+        - ``url`` always points to the ``djqgrid.views.query`` view with the grid's ID.
+        """
         options = self._options.copy()
         if override:
             options.update(override)
@@ -86,6 +130,32 @@ class BaseGrid(object):
         return options
 
     def model_to_dict(self, model):
+        """
+        Takes a model and converts it to a Python dictionary that will be sent to the jqGrid.
+
+        This is done by going over all the columns, and rendering each of them to both text and HTML. The text
+        is put in the result dictionary. The result dictionary also has an ``html`` dictionary, which contains the
+        HTML rendering of each column.
+
+        This is done to solve a bug with jqGrid's inline editing, that couldn't handle HTML values of cells properly.
+        So instead we use a formatter, called ``customHtmlFormatter`` (in ``djqgrid_utils.js``) that can take the value
+        from the html dictionary.
+
+        Sometimes more information is required by the JavaScript code (for example, to choose row CSS styles). It
+        is possible to add additional information. The method ``get_additional_data`` returns this additional information,
+        which is put in result JSON as well.
+
+                So, for example, a Grid with two columns will have a JSON looking likes this::
+        {col1: 'col1-text',
+         col2: 'col2-text',
+         html: {
+            'col1': 'col1-html',
+            'col2': 'col2-html'
+         },
+         additional: { ... }
+        }
+        """
+
         result = {}
         html = {}
         for column in self.columns.values():
@@ -100,9 +170,31 @@ class BaseGrid(object):
         return result
 
     def get_additional_data(self, model):
+        """
+        Retrieves additional data to be sent back to the client.
+
+        Args:
+            model: The model of the currently rendered row
+        Returns:
+            A dictionary with more data that will be sent to the client, or ``None`` if there's no such data
+        """
+
         return None
 
     def apply_sort(self, queryset, querydict):
+        """
+        Applys sorting on the queryset.
+
+        jqGrid supports sorting, by passing ``sidx`` and ``sord`` in the request's query string. ``apply_sort``
+        applies this sorting on a queryset.
+
+        Args:
+            queryset: A queryset for the objects of tje grid
+            querydict: The request's querydict with sidx and sord
+        Returns:
+            An ordered queryset.
+        """
+
         try:
             sidx = querydict['sidx']
             if not sidx:
@@ -117,9 +209,28 @@ class BaseGrid(object):
         raise ValueError("Can't find index field '%s'" % sidx)
 
     def apply_query(self, queryset, querydict):
+        """
+        This function lets a Grid instance change the default query, if it's ever necessary
+
+        Args:
+            queryset: The default query (``self.model.objects``)
+            querydict: The request's query string
+        Returns:
+            The actual queryset to use
+
+        Override this function if the default query is not enough
+        """
         return queryset
 
     def get_query_results(self, querydict):
+        """
+        Returns a queryset to populate the grid
+
+        Args:
+            querydict: The request's query dictionary
+        Returns:
+            The queryset that will be used to populate the grid. Paging will be applied by the caller.
+        """
         queryset = self.model.objects
         queryset = self.apply_query(queryset, querydict)
         queryset = self.apply_sort(queryset, querydict)
@@ -127,6 +238,17 @@ class BaseGrid(object):
         return queryset
 
     def get_json_data(self, querydict):
+        """
+        Returns a JSON string with the grid's contents
+
+        Args:
+            querydict: The request's query dictionary
+        Returns:
+            JSON string with the grid's contents
+
+        *DO NOT* override this method unless absolutely necessary. ``apply_query`` and ``get_additional_data`` should
+        be overridden instead.
+        """
         queryset = self.get_query_results(querydict)
 
         page = int(querydict.get('page', '1'))
@@ -143,7 +265,11 @@ class BaseGrid(object):
     
 
 class Grid(six.with_metaclass(DeclarativeColumnsMetaclass, BaseGrid)):
-    """ Adds the fields metaclass magic, as is done in the Django forms """
+    """
+    The Grid class everybody will use.
+
+    We use BaseGrid, and add the fields metaclass magic, as is done in the Django forms
+    """
 
 
 

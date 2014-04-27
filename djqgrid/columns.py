@@ -56,7 +56,10 @@ class Column(object):
 
         The default implementation is to convert ``get_model_value`` to a unicode string.
         """
-        return unicode(self._get_model_value(model))
+        value = self._get_model_value(model)
+        if value is None:
+            return unicode('')
+        return unicode(value)
 
     def render_html(self, model):
         """

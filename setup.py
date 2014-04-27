@@ -9,7 +9,7 @@ os.chdir(os.path.normpath(os.path.join(os.path.abspath(__file__), os.pardir)))
 
 setup(
     name='djqgrid',
-    version='0.2.1',
+    version='0.2.2',
     packages=['djqgrid', 'djqgrid.templatetags'],
     include_package_data=True,
     license='MIT license',
@@ -28,8 +28,6 @@ setup(
         'Programming Language :: Python',
         'Programming Language :: Python :: 2',
         'Programming Language :: Python :: 2.7',
-        'Programming Language :: Python :: 3',
-        'Programming Language :: Python :: 3.3',
         'Topic :: Internet :: WWW/HTTP',
         'Topic :: Internet :: WWW/HTTP :: Dynamic Content',
         'Development Status :: 3 - Alpha',

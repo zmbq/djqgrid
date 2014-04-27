@@ -54,9 +54,9 @@ class Column(object):
         """
         Returns a text representation of the column's value.
 
-        The default implementation is to convert ``get_model_value`` to a string.
+        The default implementation is to convert ``get_model_value`` to a unicode string.
         """
-        return str(self._get_model_value(model))
+        return unicode(self._get_model_value(model))
 
     def render_html(self, model):
         """

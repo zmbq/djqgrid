@@ -45,7 +45,7 @@ def jqgrid(context, grid, prefix='', pager=True, urlquery=None, **kwargs):
     if pager:
         options['pager'] = '#' + pagerId
     else:
-        options['rows'] = 99999
+        options['rowNum'] = 99999
     options = json_helpers.dumps(options, indent=4)
 
     html = """

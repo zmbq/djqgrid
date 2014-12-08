@@ -32,7 +32,7 @@ def function(funcname):
     """
     Wraps a JavaScript function name with our token, so it can be unquoted when rendering to JSON.
 
-    he jqGrid option object is actually a Python dictionary that is rendered to JSON in the jqgrid template tag.
+    The jqGrid option object is actually a Python dictionary that is rendered to JSON in the jqgrid template tag.
 
     Unfortunately, Python's ``json`` module can't output such JSON, it will always put quotes around strings (without the
     quotes, it's not legal JSON), so we need to work around it to support unquoted strings.

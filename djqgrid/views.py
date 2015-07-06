@@ -16,10 +16,9 @@ class JsonResponse(HttpResponse):
     Returns:
         A Django response object
     """
-    def __init__(self, content, mimetype='application/json', status=None, content_type='application/json'):
+    def __init__(self, content, status=None, content_type='application/json'):
         super(JsonResponse, self).__init__(
             content=json.dumps(content),
-            mimetype=mimetype,
             status=status,
             content_type=content_type)
 
